@@ -8,18 +8,7 @@ import javax.persistence.criteria.CriteriaQuery;
 import javax.persistence.criteria.Root;
 import java.util.List;
 
-/**
- * packageName    : hellojpa
- * fileName       : JpaMain
- * author         : Jihun Park
- * date           : 2022/03/11
- * description    :
- * ===========================================================
- * DATE              AUTHOR             NOTE
- * -----------------------------------------------------------
- * 2022/03/11        Jihun Park       최초 생성
- */
-public class JpaMain {
+public class JPQLMain {
     public static void main(String[] args) {
 
         EntityManagerFactory emf = Persistence.createEntityManagerFactory("hello");
