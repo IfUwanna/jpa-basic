@@ -5,6 +5,7 @@ import javax.persistence.*;
 import javax.persistence.criteria.CriteriaBuilder;
 import javax.persistence.criteria.CriteriaQuery;
 import javax.persistence.criteria.Root;
+import java.util.Collection;
 import java.util.List;
 
 public class JPQLMain {
@@ -64,6 +65,7 @@ public class JPQLMain {
             em.createQuery("SELECT m from Member m join m.team t", Member.class).getResultList();
             em.createQuery("SELECT m from Member m left join m.team t", Member.class).getResultList();
             em.createQuery("SELECT m from Member m,Team t", Member.class).getResultList();
+
             // 조인 - ON 조인대상 필터링, 연관관계 없는 엔티티 외부조인
             em.createQuery("SELECT m from Member m join m.team t on t.name='A'", Member.class).getResultList();
             em.createQuery("SELECT m from Member m join m.team t on m.username = t.name", Member.class).getResultList();
@@ -94,9 +96,52 @@ public class JPQLMain {
             em.createQuery("select substring(m.username,2,3) from Member m", String.class).getResultList();
             em.createQuery("select locate('de','abcdefg') from Member m", Integer.class).getResultList();
             em.createQuery("select size(t.members) from Team t", Integer.class).getResultList();
+
             // JPQL 사용자 함수 등록
             em.createQuery("select function('group_concat',m.username) from Member m", String.class).getResultList();
             em.createQuery("select group_concat(m.username) from Member m", String.class).getResultList();
+
+            // 경로표현식 - 1.상태필드, 2.단일값 연관경로, 3.컬렉션값 연관경로
+            em.createQuery("select m.username from Member m", String.class).getResultList();    //상태필드
+            em.createQuery("select m.team.name from Member m", String.class).getResultList();   //단일값 연관경로(묵시적 내부조인 발생)
+            em.createQuery("select t.members from Team t", Collection.class).getResultList();   //컬렉션값 연관경로(묵시적 내부조인 발생)
+
+            // 페치 조인(Fetch join) 엔티티,컬렉션
+            em.createQuery("select m from Member m join fetch m.team", Member.class).getResultList(); //페치 조인으로 회원과 팀을 함께 조회해서 지연 로딩X, 프록시가 아닌 실객체가 담김
+            em.createQuery("select t from Team t join fetch t.members where t.name = '팀A'", Team.class).getResultList();
+
+            // 페치 조인(Fetch join) 컬렉션 distinct
+            em.createQuery("select distinct t from Team t join fetch t.members where t.name = '팀A'", Team.class).getResultList();
+
+            // 일반조인과 페치조인의 차이 (일반조인은 연관된 엔티티를 함께 조회하지 않는다. select절에서 team만 조회)
+            em.createQuery("select t from Team t join t.members m where t.name = '팀A'", Team.class).getResultList();     //일반조인
+            em.createQuery("select t from Team t join fetch t.members where t.name = '팀A'", Team.class).getResultList();     //페치조
+
+            // 페치조인 일대다 페이징 처리 안됨!! 푸는방법 ( 다대일로 뒤집음 )
+            em.createQuery("select m from Member m join fetch m.team", Member.class)
+                    .setFirstResult(0).setMaxResults(2).getResultList();
+            // 팀을 조회하고 member를 BatchSize로 in절에 해당 사이즈만큼 조회해서 페이징사이즈만큼 가져
+            em.createQuery("select t from Team t", Team.class)
+                    .setFirstResult(0).setMaxResults(2).getResultList();
+
+            //다형성 쿼리 (TYPE, TREAT)
+            //em.createQuery("select i from Item i where type(i)= Book ", Item.class);   // TYPE 특정 자식만 조회
+            //em.createQuery("select i from Item i where treat(i as Book).auther = ‘kim’", Item.class); // TREAT 다운캐스
+
+            // 엔티티 직접 사용 - 기본키, 외래키
+//            em.createQuery("select m from Member m where m = :member", Member.class).setParameter("member", new Member()).getResultList();
+//            em.createQuery("select m from Member m where m.id = :memberId", Member.class).setParameter("memberId", 1).getResultList();
+//            em.createQuery("select m from Member m where m.team = :team", Team.class).setParameter("team", new Team()).getResultList();
+//            em.createQuery("select m from Member m where m.team.id = :teamId", Team.class).setParameter("teamId", "TeamA").getResultList();
+
+            //named 쿼리 (Member에 @NamedQuery로 사전 정의)
+            em.createNamedQuery("Member.findByUsername", Member.class)
+                            .setParameter("username", "회원1")
+                            .getResultList();
+
+            //벌크 연산 update, delete (+insert into)
+            em.createQuery("update Member m set m.age = 20").executeUpdate(); // return result Count
+
 
             tx.commit();
 

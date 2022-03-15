@@ -14,6 +14,9 @@ import javax.persistence.*;
  * 2022/03/14        Jihun Park       최초 생성
  */
 @Entity
+@NamedQuery(
+        name = "Member.findByUsername",
+        query="select m from Member m where m.username = :username")
 public class Member {
 
     @Id
